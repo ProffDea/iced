@@ -131,7 +131,7 @@ impl Renderer {
         }
     }
 
-    fn draw(
+    pub fn draw(
         &mut self,
         clear_color: Option<Color>,
         target: &wgpu::TextureView,
@@ -160,6 +160,14 @@ impl Renderer {
         }
 
         encoder
+    }
+
+    pub fn finish(&mut self) {
+        self.staging_belt.finish();
+    }
+
+    pub fn recall(&mut self) {
+        self.staging_belt.recall();
     }
 
     pub fn present(
