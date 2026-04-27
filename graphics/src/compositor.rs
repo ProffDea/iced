@@ -103,12 +103,12 @@ pub trait Compositor: Sized {
 /// This is just a convenient super trait of the `raw-window-handle`
 /// traits.
 pub trait Window:
-    HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
+    HasWindowHandle + HasDisplayHandle + Send + Sync + 'static
 {
 }
 
 impl<T> Window for T where
-    T: HasWindowHandle + HasDisplayHandle + MaybeSend + MaybeSync + 'static
+    T: HasWindowHandle + HasDisplayHandle + Send + Sync + 'static
 {
 }
 
