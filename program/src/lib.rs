@@ -19,6 +19,8 @@ use crate::futures::{Executor, Subscription};
 use crate::graphics::compositor;
 use crate::runtime::Task;
 
+use bevy_ecs::world::DeferredWorld;
+
 /// An interactive, native, cross-platform, multi-windowed application.
 ///
 /// A [`Program`] can execute asynchronous actions by returning a
@@ -52,12 +54,14 @@ pub trait Program: Sized {
     fn update(
         &self,
         state: &mut Self::State,
+        world: DeferredWorld<'_>,
         message: Self::Message,
     ) -> Task<Self::Message>;
 
     fn view<'a>(
         &self,
         state: &'a Self::State,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
 
@@ -162,17 +166,19 @@ pub fn with_title<P: Program>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn theme(
@@ -252,17 +258,19 @@ pub fn with_subscription<P: Program>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -347,17 +355,19 @@ pub fn with_theme<P: Program>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn subscription(
@@ -434,17 +444,19 @@ pub fn with_style<P: Program>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn subscription(
@@ -513,17 +525,19 @@ pub fn with_scale_factor<P: Program>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn subscription(
@@ -604,17 +618,19 @@ pub fn with_executor<P: Program, E: Executor>(
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.program.update(state, message)
+            self.program.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.program.view(state, window)
+            self.program.view(state, world, window)
         }
 
         fn subscription(
@@ -682,16 +698,21 @@ impl<P: Program> Instance<P> {
     }
 
     /// Processes the given message and updates the [`Instance`].
-    pub fn update(&mut self, message: P::Message) -> Task<P::Message> {
-        self.program.update(&mut self.state, message)
+    pub fn update(
+        &mut self,
+        world: DeferredWorld<'_>,
+        message: P::Message,
+    ) -> Task<P::Message> {
+        self.program.update(&mut self.state, world, message)
     }
 
     /// Produces the current widget tree of the [`Instance`].
     pub fn view(
         &self,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
-        self.program.view(&self.state, window)
+        self.program.view(&self.state, world, window)
     }
 
     /// Returns the current [`Subscription`] of the [`Instance`].

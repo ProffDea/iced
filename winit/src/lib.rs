@@ -55,6 +55,8 @@ use crate::runtime::system;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
 
+use bevy_ecs::system::SystemState;
+use bevy_ecs::world::{DeferredWorld, World};
 use program::Program;
 use window::WindowManager;
 
@@ -138,6 +140,7 @@ where
         graphics_settings,
         settings.fonts,
         system_theme_receiver,
+        World::default(),
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -502,12 +505,17 @@ async fn run_instance<P>(
     graphics_settings: graphics::Settings,
     default_fonts: Vec<Cow<'static, [u8]>>,
     mut _system_theme: oneshot::Receiver<theme::Mode>,
+    mut world: World,
 ) where
     P: Program + 'static,
     P::Theme: theme::Base,
 {
     use winit::event;
     use winit::event_loop::ControlFlow;
+
+    let mut system_state: SystemState<DeferredWorld<'_>> =
+        SystemState::new(&mut world);
+    let mut world = system_state.get_mut(&mut world);
 
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
@@ -689,6 +697,7 @@ async fn run_instance<P>(
                         &mut window.renderer,
                         logical_size,
                         id,
+                        world.reborrow(),
                     ),
                 );
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
@@ -759,6 +768,7 @@ async fn run_instance<P>(
                             &mut ui_caches,
                             &mut is_window_opening,
                             &mut system_theme,
+                            world.reborrow(),
                         );
                         actions += 1;
                     }
@@ -864,6 +874,7 @@ async fn run_instance<P>(
                                     &mut program,
                                     &mut runtime,
                                     &mut messages,
+                                    world.reborrow(),
                                 );
 
                                 user_interfaces =
@@ -871,6 +882,7 @@ async fn run_instance<P>(
                                         &program,
                                         &mut window_manager,
                                         caches,
+                                        world.reborrow(),
                                     ));
 
                                 for action in actions {
@@ -895,6 +907,7 @@ async fn run_instance<P>(
                                         &mut ui_caches,
                                         &mut is_window_opening,
                                         &mut system_theme,
+                                        world.reborrow(),
                                     );
                                 }
 
@@ -1102,6 +1115,7 @@ async fn run_instance<P>(
                                 &mut ui_caches,
                                 &mut is_window_opening,
                                 &mut system_theme,
+                                world.reborrow(),
                             );
                         } else {
                             window.state.update(
@@ -1222,6 +1236,7 @@ async fn run_instance<P>(
                                 &mut program,
                                 &mut runtime,
                                 &mut messages,
+                                world.reborrow(),
                             );
 
                             user_interfaces =
@@ -1229,6 +1244,7 @@ async fn run_instance<P>(
                                     &program,
                                     &mut window_manager,
                                     cached_interfaces,
+                                    world.reborrow(),
                                 ));
 
                             for action in actions {
@@ -1246,6 +1262,7 @@ async fn run_instance<P>(
                                     &mut ui_caches,
                                     &mut is_window_opening,
                                     &mut system_theme,
+                                    world.reborrow(),
                                 );
                             }
 
@@ -1282,12 +1299,13 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     id: window::Id,
+    world: DeferredWorld<'_>,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer>
 where
     P::Theme: theme::Base,
 {
     let view_span = debug::view(id);
-    let view = program.view(id);
+    let view = program.view(world, id);
     view_span.finish();
 
     let layout_span = debug::layout(id);
@@ -1301,6 +1319,7 @@ fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     messages: &mut Vec<P::Message>,
+    mut world: DeferredWorld<'_>,
 ) -> Vec<Action<P::Message>>
 where
     P::Theme: theme::Base,
@@ -1310,7 +1329,8 @@ where
     let mut actions = Vec::new();
 
     for message in messages.drain(..) {
-        let task = runtime.enter(|| program.update(message));
+        let world = world.reborrow();
+        let task = runtime.enter(|| program.update(world, message));
 
         if let Some(mut stream) = runtime::task::into_stream(task) {
             let waker = futures::task::noop_waker_ref();
@@ -1359,6 +1379,7 @@ fn run_action<'a, P, C>(
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
+    mut world: DeferredWorld<'_>,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -1798,6 +1819,7 @@ fn run_action<'a, P, C>(
                         &mut window.renderer,
                         size,
                         id,
+                        world.reborrow(),
                     ),
                 );
 
@@ -1817,6 +1839,7 @@ pub fn build_user_interfaces<'a, P: Program, C>(
     program: &'a program::Instance<P>,
     window_manager: &mut WindowManager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
+    mut world: DeferredWorld<'_>,
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
     C: Compositor<Renderer = P::Renderer>,
@@ -1834,7 +1857,7 @@ where
 
     cached_user_interfaces
         .drain()
-        .filter_map(|(id, cache)| {
+        .filter_map(move |(id, cache)| {
             let window = window_manager.get_mut(id)?;
 
             Some((
@@ -1845,6 +1868,7 @@ where
                     &mut window.renderer,
                     window.state.logical_size(),
                     id,
+                    world.reborrow(),
                 ),
             ))
         })

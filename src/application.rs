@@ -40,13 +40,14 @@ use crate::{
     Subscription, Task, Theme,
 };
 
+use bevy_ecs::world::DeferredWorld;
 use iced_debug as debug;
 
 use std::borrow::Cow;
 
-pub mod timed;
+// pub mod timed;
 
-pub use timed::timed;
+// pub use timed::timed;
 
 /// Creates an iced [`Application`] given its boot, update, and view logic.
 ///
@@ -128,17 +129,19 @@ where
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message)
+            self.update.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state)
+            self.view.view(state, world)
         }
 
         fn settings(&self) -> Settings {
@@ -482,17 +485,19 @@ impl<P: Program> Program for Application<P> {
     fn update(
         &self,
         state: &mut Self::State,
+        world: DeferredWorld<'_>,
         message: Self::Message,
     ) -> Task<Self::Message> {
-        debug::hot(|| self.raw.update(state, message))
+        debug::hot(|| self.raw.update(state, world, message))
     }
 
     fn view<'a>(
         &self,
         state: &'a Self::State,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        debug::hot(|| self.raw.view(state, window))
+        debug::hot(|| self.raw.view(state, world, window))
     }
 
     fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -597,22 +602,37 @@ where
 /// returns any `Into<Task<Message>>`.
 pub trait UpdateFn<State, Message> {
     /// Processes the message and updates the state of the [`Application`].
-    fn update(&self, state: &mut State, message: Message) -> Task<Message>;
+    fn update(
+        &self,
+        state: &mut State,
+        world: DeferredWorld<'_>,
+        message: Message,
+    ) -> Task<Message>;
 }
 
 impl<State> UpdateFn<State, Never> for () {
-    fn update(&self, _state: &mut State, _message: Never) -> Task<Never> {
+    fn update(
+        &self,
+        _state: &mut State,
+        _world: DeferredWorld<'_>,
+        _message: Never,
+    ) -> Task<Never> {
         Task::none()
     }
 }
 
 impl<T, State, Message, C> UpdateFn<State, Message> for T
 where
-    T: Fn(&mut State, Message) -> C,
+    T: Fn(&mut State, DeferredWorld<'_>, Message) -> C,
     C: Into<Task<Message>>,
 {
-    fn update(&self, state: &mut State, message: Message) -> Task<Message> {
-        self(state, message).into()
+    fn update(
+        &self,
+        state: &mut State,
+        world: DeferredWorld<'_>,
+        message: Message,
+    ) -> Task<Message> {
+        self(state, world, message).into()
     }
 }
 
@@ -622,18 +642,26 @@ where
 /// returns any `Into<Element<'_, Message>>`.
 pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     /// Produces the widget of the [`Application`].
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer>;
+    fn view(
+        &self,
+        state: &'a State,
+        world: DeferredWorld<'_>,
+    ) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
     ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State) -> Widget,
+    T: Fn(&'a State, DeferredWorld<'_>) -> Widget,
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
-    fn view(&self, state: &'a State) -> Element<'a, Message, Theme, Renderer> {
-        self(state).into()
+    fn view(
+        &self,
+        state: &'a State,
+        world: DeferredWorld<'_>,
+    ) -> Element<'a, Message, Theme, Renderer> {
+        self(state, world).into()
     }
 }
 

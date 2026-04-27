@@ -10,6 +10,7 @@ use crate::{
     Theme,
 };
 
+use bevy_ecs::world::DeferredWorld;
 use iced_debug as debug;
 
 use std::borrow::Cow;
@@ -84,17 +85,19 @@ where
         fn update(
             &self,
             state: &mut Self::State,
+            world: DeferredWorld<'_>,
             message: Self::Message,
         ) -> Task<Self::Message> {
-            self.update.update(state, message)
+            self.update.update(state, world, message)
         }
 
         fn view<'a>(
             &self,
             state: &'a Self::State,
+            world: DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-            self.view.view(state, window)
+            self.view.view(state, world, window)
         }
     }
 
@@ -318,17 +321,19 @@ impl<P: Program> Program for Daemon<P> {
     fn update(
         &self,
         state: &mut Self::State,
+        world: DeferredWorld<'_>,
         message: Self::Message,
     ) -> Task<Self::Message> {
-        debug::hot(|| self.raw.update(state, message))
+        debug::hot(|| self.raw.update(state, world, message))
     }
 
     fn view<'a>(
         &self,
         state: &'a Self::State,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
-        debug::hot(|| self.raw.view(state, window))
+        debug::hot(|| self.raw.view(state, world, window))
     }
 
     fn title(&self, state: &Self::State, window: window::Id) -> String {
@@ -395,6 +400,7 @@ pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     fn view(
         &self,
         state: &'a State,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Message, Theme, Renderer>;
 }
@@ -402,16 +408,17 @@ pub trait ViewFn<'a, State, Message, Theme, Renderer> {
 impl<'a, T, State, Message, Theme, Renderer, Widget>
     ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State, window::Id) -> Widget,
+    T: Fn(&'a State, DeferredWorld<'_>, window::Id) -> Widget,
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
     fn view(
         &self,
         state: &'a State,
+        world: DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Message, Theme, Renderer> {
-        self(state, window).into()
+        self(state, world, window).into()
     }
 }
 

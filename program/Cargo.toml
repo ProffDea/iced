@@ -21,3 +21,5 @@ time-travel = []
 [dependencies]
 iced_graphics.workspace = true
 iced_runtime.workspace = true
+
+bevy_ecs.workspace = true

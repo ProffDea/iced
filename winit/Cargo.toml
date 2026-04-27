@@ -26,6 +26,7 @@ wayland = ["winit/wayland", "winit/wayland-dlopen", "winit/wayland-csd-adwaita",
 iced_debug.workspace = true
 iced_program.workspace = true
 
+bevy_ecs.workspace = true
 log.workspace = true
 rustc-hash.workspace = true
 thiserror.workspace = true
