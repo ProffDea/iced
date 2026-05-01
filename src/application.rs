@@ -365,7 +365,7 @@ impl<P: Program> Application<P> {
     /// Sets the subscription logic of the [`Application`].
     pub fn subscription(
         self,
-        f: impl Fn(&P::State) -> Subscription<P::Message>,
+        f: impl Fn(&P::State, DeferredWorld<'_>) -> Subscription<P::Message>,
     ) -> Application<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -504,8 +504,12 @@ impl<P: Program> Program for Application<P> {
         debug::hot(|| self.raw.title(state, window))
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-        debug::hot(|| self.raw.subscription(state))
+    fn subscription(
+        &self,
+        state: &Self::State,
+        world: DeferredWorld<'_>,
+    ) -> Subscription<Self::Message> {
+        debug::hot(|| self.raw.subscription(state, world))
     }
 
     fn theme(

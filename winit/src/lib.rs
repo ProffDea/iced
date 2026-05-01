@@ -121,9 +121,13 @@ where
         runtime.run(stream);
     }
 
-    runtime.track(subscription::into_recipes(
-        runtime.enter(|| program.subscription().map(Action::Output)),
-    ));
+    let mut world = World::default();
+
+    runtime.track(subscription::into_recipes(runtime.enter(|| {
+        program
+            .subscription((&mut world).into())
+            .map(Action::Output)
+    })));
 
     let (event_sender, event_receiver) = mpsc::unbounded();
     let (control_sender, control_receiver) = mpsc::unbounded();
@@ -140,7 +144,7 @@ where
         graphics_settings,
         settings.fonts,
         system_theme_receiver,
-        World::default(),
+        world,
     ));
 
     let context = task::Context::from_waker(task::noop_waker_ref());
@@ -1329,8 +1333,7 @@ where
     let mut actions = Vec::new();
 
     for message in messages.drain(..) {
-        let world = world.reborrow();
-        let task = runtime.enter(|| program.update(world, message));
+        let task = runtime.enter(|| program.update(world.reborrow(), message));
 
         if let Some(mut stream) = runtime::task::into_stream(task) {
             let waker = futures::task::noop_waker_ref();
@@ -1354,7 +1357,7 @@ where
         }
     }
 
-    let subscription = runtime.enter(|| program.subscription());
+    let subscription = runtime.enter(|| program.subscription(world));
     let recipes = subscription::into_recipes(subscription.map(Action::Output));
 
     runtime.track(recipes);

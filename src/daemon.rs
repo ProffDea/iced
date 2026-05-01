@@ -208,7 +208,7 @@ impl<P: Program> Daemon<P> {
     /// Sets the subscription logic of the [`Daemon`].
     pub fn subscription(
         self,
-        f: impl Fn(&P::State) -> Subscription<P::Message>,
+        f: impl Fn(&P::State, DeferredWorld<'_>) -> Subscription<P::Message>,
     ) -> Daemon<
         impl Program<State = P::State, Message = P::Message, Theme = P::Theme>,
     > {
@@ -340,8 +340,12 @@ impl<P: Program> Program for Daemon<P> {
         debug::hot(|| self.raw.title(state, window))
     }
 
-    fn subscription(&self, state: &Self::State) -> Subscription<Self::Message> {
-        debug::hot(|| self.raw.subscription(state))
+    fn subscription(
+        &self,
+        state: &Self::State,
+        world: DeferredWorld<'_>,
+    ) -> Subscription<Self::Message> {
+        debug::hot(|| self.raw.subscription(state, world))
     }
 
     fn theme(

@@ -97,6 +97,7 @@ pub trait Program: Sized {
     fn subscription(
         &self,
         _state: &Self::State,
+        _world: DeferredWorld<'_>,
     ) -> Subscription<Self::Message> {
         Subscription::none()
     }
@@ -192,8 +193,9 @@ pub fn with_title<P: Program>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
+            self.program.subscription(state, world)
         }
 
         fn style(
@@ -215,7 +217,7 @@ pub fn with_title<P: Program>(
 /// Decorates a [`Program`] with the given subscription function.
 pub fn with_subscription<P: Program>(
     program: P,
-    f: impl Fn(&P::State) -> Subscription<P::Message>,
+    f: impl Fn(&P::State, DeferredWorld<'_>) -> Subscription<P::Message>,
 ) -> impl Program<State = P::State, Message = P::Message, Theme = P::Theme> {
     struct WithSubscription<P, F> {
         program: P,
@@ -224,7 +226,7 @@ pub fn with_subscription<P: Program>(
 
     impl<P: Program, F> Program for WithSubscription<P, F>
     where
-        F: Fn(&P::State) -> Subscription<P::Message>,
+        F: Fn(&P::State, DeferredWorld<'_>) -> Subscription<P::Message>,
     {
         type State = P::State;
         type Message = P::Message;
@@ -235,8 +237,9 @@ pub fn with_subscription<P: Program>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            (self.subscription)(state)
+            (self.subscription)(state, world)
         }
 
         fn name() -> &'static str {
@@ -373,8 +376,9 @@ pub fn with_theme<P: Program>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
+            self.program.subscription(state, world)
         }
 
         fn style(
@@ -462,8 +466,9 @@ pub fn with_style<P: Program>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
+            self.program.subscription(state, world)
         }
 
         fn theme(
@@ -543,8 +548,9 @@ pub fn with_scale_factor<P: Program>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
+            self.program.subscription(state, world)
         }
 
         fn theme(
@@ -636,8 +642,9 @@ pub fn with_executor<P: Program, E: Executor>(
         fn subscription(
             &self,
             state: &Self::State,
+            world: DeferredWorld<'_>,
         ) -> Subscription<Self::Message> {
-            self.program.subscription(state)
+            self.program.subscription(state, world)
         }
 
         fn theme(
@@ -716,8 +723,11 @@ impl<P: Program> Instance<P> {
     }
 
     /// Returns the current [`Subscription`] of the [`Instance`].
-    pub fn subscription(&self) -> Subscription<P::Message> {
-        self.program.subscription(&self.state)
+    pub fn subscription(
+        &self,
+        world: DeferredWorld<'_>,
+    ) -> Subscription<P::Message> {
+        self.program.subscription(&self.state, world)
     }
 
     /// Returns the current theme of the [`Instance`].
