@@ -94,7 +94,7 @@ where
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.view.view(state, world, window)
@@ -330,7 +330,7 @@ impl<P: Program> Program for Daemon<P> {
     fn view<'a>(
         &self,
         state: &'a Self::State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
         debug::hot(|| self.raw.view(state, world, window))
@@ -404,7 +404,7 @@ pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     fn view(
         &self,
         state: &'a State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Message, Theme, Renderer>;
 }
@@ -412,14 +412,14 @@ pub trait ViewFn<'a, State, Message, Theme, Renderer> {
 impl<'a, T, State, Message, Theme, Renderer, Widget>
     ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State, DeferredWorld<'_>, window::Id) -> Widget,
+    T: Fn(&'a State, &'a DeferredWorld<'_>, window::Id) -> Widget,
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
     fn view(
         &self,
         state: &'a State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Message, Theme, Renderer> {
         self(state, world, window).into()

@@ -138,7 +138,7 @@ where
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             _window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.view.view(state, world)
@@ -494,7 +494,7 @@ impl<P: Program> Program for Application<P> {
     fn view<'a>(
         &self,
         state: &'a Self::State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
         debug::hot(|| self.raw.view(state, world, window))
@@ -649,21 +649,21 @@ pub trait ViewFn<'a, State, Message, Theme, Renderer> {
     fn view(
         &self,
         state: &'a State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
     ) -> Element<'a, Message, Theme, Renderer>;
 }
 
 impl<'a, T, State, Message, Theme, Renderer, Widget>
     ViewFn<'a, State, Message, Theme, Renderer> for T
 where
-    T: Fn(&'a State, DeferredWorld<'_>) -> Widget,
+    T: Fn(&'a State, &'a DeferredWorld<'_>) -> Widget,
     State: 'static,
     Widget: Into<Element<'a, Message, Theme, Renderer>>,
 {
     fn view(
         &self,
         state: &'a State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
     ) -> Element<'a, Message, Theme, Renderer> {
         self(state, world).into()
     }

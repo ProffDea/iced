@@ -55,7 +55,6 @@ use crate::runtime::system;
 use crate::runtime::user_interface::{self, UserInterface};
 use crate::runtime::{Action, Task};
 
-use bevy_ecs::system::SystemState;
 use bevy_ecs::world::{DeferredWorld, World};
 use program::Program;
 use window::WindowManager;
@@ -517,9 +516,7 @@ async fn run_instance<P>(
     use winit::event;
     use winit::event_loop::ControlFlow;
 
-    let mut system_state: SystemState<DeferredWorld<'_>> =
-        SystemState::new(&mut world);
-    let mut world = system_state.get_mut(&mut world);
+    let mut world: DeferredWorld<'_> = (&mut world).into();
 
     let mut window_manager = WindowManager::new();
     let mut is_window_opening = !is_daemon;
@@ -701,7 +698,7 @@ async fn run_instance<P>(
                         &mut window.renderer,
                         logical_size,
                         id,
-                        world.reborrow(),
+                        &world,
                     ),
                 );
                 let _ = ui_caches.insert(id, user_interface::Cache::default());
@@ -772,7 +769,7 @@ async fn run_instance<P>(
                             &mut ui_caches,
                             &mut is_window_opening,
                             &mut system_theme,
-                            world.reborrow(),
+                            &world,
                         );
                         actions += 1;
                     }
@@ -878,7 +875,7 @@ async fn run_instance<P>(
                                     &mut program,
                                     &mut runtime,
                                     &mut messages,
-                                    world.reborrow(),
+                                    &mut world,
                                 );
 
                                 user_interfaces =
@@ -886,7 +883,7 @@ async fn run_instance<P>(
                                         &program,
                                         &mut window_manager,
                                         caches,
-                                        world.reborrow(),
+                                        &world,
                                     ));
 
                                 for action in actions {
@@ -911,7 +908,7 @@ async fn run_instance<P>(
                                         &mut ui_caches,
                                         &mut is_window_opening,
                                         &mut system_theme,
-                                        world.reborrow(),
+                                        &world,
                                     );
                                 }
 
@@ -1119,7 +1116,7 @@ async fn run_instance<P>(
                                 &mut ui_caches,
                                 &mut is_window_opening,
                                 &mut system_theme,
-                                world.reborrow(),
+                                &world,
                             );
                         } else {
                             window.state.update(
@@ -1240,7 +1237,7 @@ async fn run_instance<P>(
                                 &mut program,
                                 &mut runtime,
                                 &mut messages,
-                                world.reborrow(),
+                                &mut world,
                             );
 
                             user_interfaces =
@@ -1248,7 +1245,7 @@ async fn run_instance<P>(
                                     &program,
                                     &mut window_manager,
                                     cached_interfaces,
-                                    world.reborrow(),
+                                    &world,
                                 ));
 
                             for action in actions {
@@ -1266,7 +1263,7 @@ async fn run_instance<P>(
                                     &mut ui_caches,
                                     &mut is_window_opening,
                                     &mut system_theme,
-                                    world.reborrow(),
+                                    &world,
                                 );
                             }
 
@@ -1303,7 +1300,7 @@ fn build_user_interface<'a, P: Program>(
     renderer: &mut P::Renderer,
     size: Size,
     id: window::Id,
-    world: DeferredWorld<'_>,
+    world: &'a DeferredWorld<'_>,
 ) -> UserInterface<'a, P::Message, P::Theme, P::Renderer>
 where
     P::Theme: theme::Base,
@@ -1323,7 +1320,7 @@ fn update<P: Program, E: Executor>(
     program: &mut program::Instance<P>,
     runtime: &mut Runtime<E, Proxy<P::Message>, Action<P::Message>>,
     messages: &mut Vec<P::Message>,
-    mut world: DeferredWorld<'_>,
+    world: &mut DeferredWorld<'_>,
 ) -> Vec<Action<P::Message>>
 where
     P::Theme: theme::Base,
@@ -1357,7 +1354,7 @@ where
         }
     }
 
-    let subscription = runtime.enter(|| program.subscription(world));
+    let subscription = runtime.enter(|| program.subscription(world.reborrow()));
     let recipes = subscription::into_recipes(subscription.map(Action::Output));
 
     runtime.track(recipes);
@@ -1382,7 +1379,7 @@ fn run_action<'a, P, C>(
     ui_caches: &mut FxHashMap<window::Id, user_interface::Cache>,
     is_window_opening: &mut bool,
     system_theme: &mut theme::Mode,
-    mut world: DeferredWorld<'_>,
+    world: &'a DeferredWorld<'_>,
 ) where
     P: Program,
     C: Compositor<Renderer = P::Renderer> + 'static,
@@ -1822,7 +1819,7 @@ fn run_action<'a, P, C>(
                         &mut window.renderer,
                         size,
                         id,
-                        world.reborrow(),
+                        world,
                     ),
                 );
 
@@ -1842,7 +1839,7 @@ pub fn build_user_interfaces<'a, P: Program, C>(
     program: &'a program::Instance<P>,
     window_manager: &mut WindowManager<P, C>,
     mut cached_user_interfaces: FxHashMap<window::Id, user_interface::Cache>,
-    mut world: DeferredWorld<'_>,
+    world: &'a DeferredWorld<'_>,
 ) -> FxHashMap<window::Id, UserInterface<'a, P::Message, P::Theme, P::Renderer>>
 where
     C: Compositor<Renderer = P::Renderer>,
@@ -1871,7 +1868,7 @@ where
                     &mut window.renderer,
                     window.state.logical_size(),
                     id,
-                    world.reborrow(),
+                    &world,
                 ),
             ))
         })

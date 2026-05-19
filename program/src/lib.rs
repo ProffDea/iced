@@ -61,7 +61,7 @@ pub trait Program: Sized {
     fn view<'a>(
         &self,
         state: &'a Self::State,
-        world: DeferredWorld<'_>,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
     ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer>;
 
@@ -176,7 +176,7 @@ pub fn with_title<P: Program>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -270,7 +270,7 @@ pub fn with_subscription<P: Program>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -367,7 +367,7 @@ pub fn with_theme<P: Program>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -457,7 +457,7 @@ pub fn with_style<P: Program>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -539,7 +539,7 @@ pub fn with_scale_factor<P: Program>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -633,7 +633,7 @@ pub fn with_executor<P: Program, E: Executor>(
         fn view<'a>(
             &self,
             state: &'a Self::State,
-            world: DeferredWorld<'_>,
+            world: &'a DeferredWorld<'_>,
             window: window::Id,
         ) -> Element<'a, Self::Message, Self::Theme, Self::Renderer> {
             self.program.view(state, world, window)
@@ -714,11 +714,11 @@ impl<P: Program> Instance<P> {
     }
 
     /// Produces the current widget tree of the [`Instance`].
-    pub fn view(
-        &self,
-        world: DeferredWorld<'_>,
+    pub fn view<'a>(
+        &'a self,
+        world: &'a DeferredWorld<'_>,
         window: window::Id,
-    ) -> Element<'_, P::Message, P::Theme, P::Renderer> {
+    ) -> Element<'a, P::Message, P::Theme, P::Renderer> {
         self.program.view(&self.state, world, window)
     }
 
